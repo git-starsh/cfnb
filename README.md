@@ -420,6 +420,9 @@ python3 main.py
 
 ```bash
 git init
+
+# 如果已存在 origin 则先删除，避免重复添加报错
+git remote remove origin 2>/dev/null
 git remote add origin https://github.com/你的用户名/仓库名.git
 
 # 查看当前默认分支名（通常为 master 或 main）
