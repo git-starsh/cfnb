@@ -38,7 +38,7 @@
 | ⚡ **TCP 连接测试** | 并发测延迟，可设成功率阈值 |
 | 🔍 **可用性二次检测** | API 验证代理能力 |
 | 📶 **真实带宽测速** | curl 下载测速，实测吞吐量 |
-| 🛡️ **IP 纯净度过滤** | 过滤滥用 IP |
+| 🛡️ **IP 纯净度过滤** | 过滤滥用 IP（仅作用于 DNS 更新） |
 | 🌍 **国家过滤前置** | TCP 测试前即过滤指定国家 |
 | ☁️ **Cloudflare DNS 更新** | 批量替换同名 A 记录 |
 | 📬 **微信实时通知** | 集成 WxPusher，异常/结果推送 |
@@ -227,7 +227,7 @@ python3 main.py
 | `USE_GLOBAL_MODE` | `boolean` | `true` | `true`=全局优选；`false`=分国家优选 |
 | `GLOBAL_TOP_N` | `int` | `15` | 全局模式保留节点数 |
 | `PER_COUNTRY_TOP_N` | `int` | `1` | 分国家模式每国保留节点数 |
-| `BANDWIDTH_CANDIDATES` | `int` | `45` | 进入测速的候选节点数 |
+| `BANDWIDTH_CANDIDATES` | `int` | `90` | 进入测速的候选节点数 |
 
 ### TCP 连接测试参数
 
@@ -244,7 +244,18 @@ python3 main.py
 | 参数 | 类型 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `FILTER_COUNTRIES_ENABLED` | `boolean` | `false` | 是否启用国家过滤 |
-| `ALLOWED_COUNTRIES` | `array` | `["US","HK"]` | 允许的国家代码列表 |
+| `ALLOWED_COUNTRIES` | `array` | `["US"]` | 允许的国家代码列表 |
+
+### 屏蔽国家过滤参数（仅作用于 DNS 更新）
+
+| 参数 | 类型 | 默认值 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `FILTER_BLOCKED_COUNTRIES_ENABLED` | `boolean` | `true` | 是否在 DNS 更新阶段屏蔽特定国家的节点 |
+| `BLOCKED_COUNTRIES` | `array` | `["CN", "HK", "MO", "RU", "TW"]` | DNS 更新时需要屏蔽的国家代码列表 |
+
+> **说明**：  
+> - 该过滤**仅作用于 Cloudflare DNS 批量更新环节**，不会影响 `ip.txt` 的内容和 GitHub 推送。  
+> - 在构建 DNS 更新列表时，系统会**先**应用纯净度过滤（若启用），**再**过滤落地 IPv6 节点（若启用），**最后**应用本屏蔽过滤移除指定国家的节点，最终选取前 N 个符合条件的 IP 写入 DNS 记录。
 
 ### 微信通知（WxPusher）参数
 
@@ -293,12 +304,31 @@ python3 main.py
 | 参数 | 类型 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `TEST_AVAILABILITY` | `boolean` | `true` | 是否进行可用性二次筛选 |
-| `FILTER_IPV6_AVAILABILITY` | `boolean` | `true` | DNS 更新时是否过滤落地 IPv6 |
 | `AVAILABILITY_CHECK_API` | `string` | `"https://check-proxyip-api.cmliussss.net/check"` | 可用性检测 API 地址 |
 | `AVAILABILITY_TIMEOUT` | `int` | `5` | 可用性 API 读取超时（秒） |
 | `AVAILABILITY_CONNECT_TIMEOUT` | `int` | `5` | 可用性 API 连接超时（秒） |
 | `AVAILABILITY_RETRY_MAX` | `int` | `2` | 可用性检测最大重试轮数 |
 | `AVAILABILITY_RETRY_DELAY` | `int` | `5` | 可用性检测重试间隔（秒） |
+
+**DNS 更新专属过滤参数**
+
+| 参数 | 类型 | 默认值 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `FILTER_IPV6_AVAILABILITY` | `boolean` | `true` | 【仅DNS】是否过滤落地为 IPv6 的节点 |
+| `FILTER_BLOCKED_COUNTRIES_ENABLED` | `boolean` | `true` | 【仅DNS】是否屏蔽特定国家的节点 |
+| `BLOCKED_COUNTRIES` | `array` | `["CN", "HK", "MO", "RU", "TW"]` | 【仅DNS】需要屏蔽的国家代码列表 |
+| `ENABLE_IP_PURITY_CHECK` | `boolean` | `true` | 【仅DNS】是否对节点进行纯净度检测 |
+| `IP_PURITY_API` | `string` | `"https://api.ipapi.is/"` | 纯净度检测 API 地址 |
+| `IP_PURITY_WORKERS` | `int` | `5` | 纯净度检测并发数 |
+| `IP_PURITY_TIMEOUT` | `int` | `5` | 纯净度 API 读取超时（秒） |
+| `IP_PURITY_CONNECT_TIMEOUT` | `int` | `5` | 纯净度 API 连接超时（秒） |
+| `IP_PURITY_RETRY_MAX` | `int` | `2` | 纯净度检测最大重试轮数 |
+| `IP_PURITY_RETRY_DELAY` | `int` | `5` | 纯净度检测重试间隔（秒） |
+| `IP_PURITY_FALLBACK` | `boolean` | `true` | 纯净度检测全部失败时是否降级使用原带宽测速结果 |
+
+> **说明**：  
+> - 纯净度检测**仅作用于 DNS 更新环节**，`ip.txt` 保存的是未经纯净度过滤的完整带宽测速结果。  
+> - 若纯净度检测通过率为 0 且 `IP_PURITY_FALLBACK` 为 `false`，DNS 更新将降级使用 `ip.txt` 中的 IP 列表（即跳过纯净度过滤）。
 
 **带宽测速参数**
 
@@ -311,19 +341,6 @@ python3 main.py
 | `BANDWIDTH_URL_TEMPLATE` | `string` | `"https://speed.cloudflare.com/__down?bytes={bytes}"` | 测速 URL 模板 |
 | `BANDWIDTH_PROCESS_BUFFER` | `int` | `2` | curl 进程额外缓冲时间（秒） |
 | `BANDWIDTH_CONNECT_TIMEOUT` | `int` | `5` | curl 测速连接超时（秒） |
-
-**纯净度检测参数**
-
-| 参数 | 类型 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `ENABLE_IP_PURITY_CHECK` | `boolean` | `true` | 是否进行 IP 纯净度检测 |
-| `IP_PURITY_API` | `string` | `"https://api.ipapi.is/"` | 纯净度检测 API 地址 |
-| `IP_PURITY_WORKERS` | `int` | `5` | 纯净度检测并发数 |
-| `IP_PURITY_TIMEOUT` | `int` | `5` | 纯净度 API 读取超时（秒） |
-| `IP_PURITY_CONNECT_TIMEOUT` | `int` | `5` | 纯净度 API 连接超时（秒） |
-| `IP_PURITY_RETRY_MAX` | `int` | `2` | 纯净度检测最大重试轮数 |
-| `IP_PURITY_RETRY_DELAY` | `int` | `5` | 纯净度检测重试间隔（秒） |
-| `IP_PURITY_FALLBACK` | `boolean` | `true` | 全部失败时是否降级 |
 
 **并发控制参数**
 
@@ -349,7 +366,8 @@ python3 main.py
 > - 通常只需修改 `ALLOWED_COUNTRIES`、`WXPUSHER_APP_TOKEN`、`WXPUSHER_UIDS`。  
 > - 启用 DNS 更新需正确填写 `CF_API_TOKEN`、`CF_ZONE_ID`、`CF_DNS_RECORD_NAME`。  
 > - 网络不稳定时可 ↑ `TCP_PROBES` / `TIMEOUT`，↓ `MIN_SUCCESS_RATE` / `MAX_WORKERS`。  
-> - 希望更快出结果可 ↓ `BANDWIDTH_CANDIDATES` 或 `BANDWIDTH_SIZE_MB`。
+> - 希望更快出结果可 ↓ `BANDWIDTH_CANDIDATES` 或 `BANDWIDTH_SIZE_MB`。  
+> - 若需在 DNS 更新中屏蔽特定国家节点，保持 `FILTER_BLOCKED_COUNTRIES_ENABLED: true` 并调整 `BLOCKED_COUNTRIES` 列表即可，`ip.txt` 不受影响。
 
 ---
 
@@ -407,7 +425,7 @@ python3 main.py
 每次运行时，脚本会：
 
 1. 查询目标子域名下现有的所有 A 记录。
-2. 从带宽测速结果中按速度顺序挑选落地 IPv4 的节点（若启用 `FILTER_IPV6_AVAILABILITY`）。
+2. 从带宽测速结果中按速度顺序进行筛选，筛选顺序为：**纯净度检测（若启用）→ 过滤落地 IPv6（若启用）→ 屏蔽特定国家（若启用）**，最终选取前 N 个符合条件的 IP。
 3. 利用 Cloudflare 批量 API **先删除所有旧记录，再创建新记录**，实现原子替换。
 
 ### 注意事项
@@ -645,7 +663,7 @@ git branch -M $(git remote show origin | grep "HEAD branch" | cut -d " " -f5) 2>
    - 程序内置重试机制，全部失败时会通过微信通知（如已启用）。
 
 7. **为什么我的 DNS 记录数量少于 `GLOBAL_TOP_N`？**  
-   如果你启用了 `FILTER_IPV6_AVAILABILITY`，且候选池中落地 IPv4 的节点总数不足目标数量，则 DNS 只会更新实际可用的节点数。这是正常现象，你可以通过增加 `BANDWIDTH_CANDIDATES` 来扩大候选池。
+   如果你启用了多重过滤（纯净度、IPv6 落地、屏蔽国家），且符合条件的节点总数不足目标数量，则 DNS 只会更新实际可用的节点数。这是正常现象，你可以通过增加 `BANDWIDTH_CANDIDATES` 来扩大候选池。
 
 </details>
 
