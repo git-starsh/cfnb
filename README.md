@@ -265,9 +265,9 @@ python3 main.py
 | 参数 | 类型 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `CF_ENABLED` | `boolean` | `true` | 是否启用 DNS 自动更新 |
-| `CF_API_TOKEN` | `string` | `""` | Cloudflare API 令牌（Zone:DNS:Edit 权限） |
-| `CF_ZONE_ID` | `string` | `""` | 域名区域 ID |
-| `CF_DNS_RECORD_NAME` | `string` | `""` | 完整子域名 |
+| `CF_API_TOKEN` | `string` | `"your_CF_API_TOKEN"` | Cloudflare API 令牌（Zone:DNS:Edit 权限） |
+| `CF_ZONE_ID` | `string` | `"your_CF_ZONE_ID"` | 域名区域 ID |
+| `CF_DNS_RECORD_NAME` | `string` | `"your_CF_DNS_RECORD_NAME"` | 完整子域名 |
 | `CF_TTL` | `int` | `60` | DNS 记录 TTL（秒） |
 | `CF_PROXIED` | `boolean` | `false` | 是否启用 Cloudflare CDN 代理 |
 | `CF_DNS_CONNECT_TIMEOUT` | `int` | `5` | Cloudflare API 连接超时（秒） |
@@ -382,7 +382,7 @@ python3 main.py
 "CF_ENABLED": true,
 "CF_API_TOKEN": "your_CF_API_TOKEN",
 "CF_ZONE_ID": "your_CF_ZONE_ID",
-"CF_DNS_RECORD_NAME": "your-domain.example.com",
+"CF_DNS_RECORD_NAME": "your_CF_DNS_RECORD_NAME",
 "CF_TTL": 60,
 "CF_PROXIED": false
 ```
@@ -465,7 +465,7 @@ git branch -M $(git remote show origin | grep "HEAD branch" | cut -d " " -f5) 2>
    $github_token = "your_github_personal_access_token_here"
    $github_username = "your_github_username"
    $repo_name = "your_repo_name"
-   $branch = "main"
+   $branch = "your_branch"
    ```
 
    ```bash
@@ -473,7 +473,7 @@ git branch -M $(git remote show origin | grep "HEAD branch" | cut -d " " -f5) 2>
    github_token="your_github_personal_access_token_here"
    github_username="your_github_username"
    repo_name="your_repo_name"
-   branch="main"
+   branch="your_branch"
    ```
 
 ### 第四步：测试推送
